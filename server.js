@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const dns = require('dns');
+const nodeUrl = require('url');
 const app = express();
 
 
@@ -36,12 +37,11 @@ const Url = mongoose.model('Url', urlSchema);
 
 app.post('/api/shorturl', function(req, res) {
   const urlbody = req.body.url;
-  const noHttpUrl = urlbody.replace(/https?:\/\//, "");
-  dns.lookup(noHttpUrl, (err,address) => {
-    if(err){
+  dns.lookup(nodeUrl.parse(urlbody).hostname, (err,address) => {
+    if(err || !address){
       return res.json({ error: 'invalid url' });
     }
-    const newUrl = new Url({url : noHttpUrl});
+    const newUrl = new Url({url : urlbody});
     newUrl.save() 
       .then(doc => {
         console.log('successfully shortened');
@@ -58,7 +58,7 @@ app.get('/api/shorturl/:id', (req,res) => {
       if(!data){
         return res.json({ error: 'invalid url' });
       }
-      return res.redirect('http://' + data.url);
+      return res.redirect(data.url);
     })
     .catch(err => console.log(err));
 })
